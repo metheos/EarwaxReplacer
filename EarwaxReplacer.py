@@ -1,12 +1,29 @@
 # Import important libraries
 
-import os 
+import os
 import gc
-from pprint import pprint 
+import glob
+from pydub import AudioSegment
+from pprint import pprint
 
 # Get CWD and set it to look in New Sounds
 cwd = os.getcwd()
 cwd += '/New Sounds'
+
+#Find any supported non-ogg files and convert them to ogg
+extension_list = ('*.mp3', '*.wav')
+os.chdir(cwd)
+#create directory to move original audio files
+if (not os.path.exists('Original Audio Files')):
+    os.mkdir('Original Audio Files')
+for extension in extension_list:
+    for audio in glob.glob(extension):
+        #use pydub to create the ogg file
+        audio_filename = os.path.splitext(os.path.basename(audio))[0] + '.ogg'
+        AudioSegment.from_file(audio).export(audio_filename, format='ogg', bitrate="64k")
+        #move the original audio file to subdir
+        os.rename(os.path.basename(audio), 'Original Audio Files/' + os.path.basename(audio))
+os.chdir('..')
 
 # Initialize files array
 files = []
