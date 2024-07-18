@@ -57,7 +57,7 @@ def getChannelScaled(ChannelData):
     # print("Times Shape:", times.shape)
     # print("Reduced Magnitude Spectra in dB Shape:", reduced_magnitude_spectra_db.shape)
     # print("Scaled Reduced Magnitude Spectra Shape:", scaled_reduced_magnitude_spectra.shape)
-    print("Integer Scaled Reduced Magnitude Spectra Shape:", integer_scaled_reduced_magnitude_spectra.shape)
+    # print("Integer Scaled Reduced Magnitude Spectra Shape:", integer_scaled_reduced_magnitude_spectra.shape)
     
     return integer_scaled_reduced_magnitude_spectra
 
@@ -95,6 +95,7 @@ for dirname, dirnames, filenames in os.walk(cwd):
 cwd = os.getcwd()
 cwd += '/Spectrum'
 
+#Generate a spectrum file for each audio file
 for file in files:
     print(file)
     AudioName = file # Audio File
@@ -102,32 +103,38 @@ for file in files:
     AudioOggFile = cwd + "/" + AudioName + ".ogg"
     AudioSpectrumFile = cwd + "/../Spectrum/" + AudioName + ".jet"
 
+    #Convert ogg to wav for analysis
     audio = AudioSegment.from_file(AudioOggFile)
     audio = audio.set_frame_rate(1376)
     audio.export(AudioWavFile, format='wav')
 
+    #Analyze WAV file
     fs, Audiodata = wavfile.read(AudioWavFile)
 
+    #Do this spectrum analysis for each Channel
     AudiodataLeft = Audiodata[:, 0]
     AudiodataRight = Audiodata[:, 1]
     
     LeftData = getChannelScaled(AudiodataLeft)
     RightData = getChannelScaled(AudiodataRight)
 
+    #Create output json for the Spectrum .jet file
     output_data = {'Refresh': 23, 'Frequencies': [], 'Peak': 100}
     for i in range(LeftData.shape[1]):
         thisRow = {'left': [], 'right': []}
         for j in range(len(LeftData)):
-        # Convert the array to a list of native Python integers
+            # Convert the arrays to lists of native Python integers
             LeftData_list = LeftData.tolist()
             RightData_list = RightData.tolist()
             thisRow['left'].append(LeftData_list[j][i])
             thisRow['right'].append(RightData_list[j][i])
         output_data['Frequencies'].append(thisRow)
 
+    #Write the Spectrum file
     with open(AudioSpectrumFile, 'w') as f:
         json.dump(output_data, f)
 
+    #Cleanup!
     os.remove(AudioWavFile)
 
 # Changed CWD back
