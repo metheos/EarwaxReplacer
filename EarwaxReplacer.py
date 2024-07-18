@@ -91,10 +91,6 @@ for dirname, dirnames, filenames in os.walk(cwd):
             filename = filename[:-4]
             files.append(filename)
 
-# Change CWD; we're done looking at the filenames.
-cwd = os.getcwd()
-cwd += '/Spectrum'
-
 #Generate a spectrum file for each audio file
 for file in files:
     print(file)
