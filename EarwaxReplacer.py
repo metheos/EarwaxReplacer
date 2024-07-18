@@ -100,38 +100,50 @@ for file in files:
     AudioSpectrumFile = cwd + "/../Spectrum/" + AudioName + ".jet"
 
     #Convert ogg to wav for analysis
-    audio = AudioSegment.from_file(AudioOggFile)
-    audio = audio.set_frame_rate(1376)
-    audio.export(AudioWavFile, format='wav')
+    try:
+        audio = AudioSegment.from_file(AudioOggFile)
+        audio = audio.set_frame_rate(1376)
+        audio.export(AudioWavFile, format='wav')
 
-    #Analyze WAV file
-    fs, Audiodata = wavfile.read(AudioWavFile)
+        #Analyze WAV file
+        fs, Audiodata = wavfile.read(AudioWavFile)
 
-    #Do this spectrum analysis for each Channel
-    AudiodataLeft = Audiodata[:, 0]
-    AudiodataRight = Audiodata[:, 1]
-    
-    LeftData = getChannelScaled(AudiodataLeft)
-    RightData = getChannelScaled(AudiodataRight)
+        #Do this spectrum analysis for each Channel
+        print(len(Audiodata.shape))
+        if len(Audiodata.shape) > 1:
+            AudiodataLeft = Audiodata[:, 0]
+            AudiodataRight = Audiodata[:, 1]
+        else:
+            AudiodataLeft = Audiodata
+            AudiodataRight = Audiodata
 
-    #Create output json for the Spectrum .jet file
-    output_data = {'Refresh': 23, 'Frequencies': [], 'Peak': 100}
-    for i in range(LeftData.shape[1]):
-        thisRow = {'left': [], 'right': []}
-        for j in range(len(LeftData)):
-            # Convert the arrays to lists of native Python integers
-            LeftData_list = LeftData.tolist()
-            RightData_list = RightData.tolist()
-            thisRow['left'].append(LeftData_list[j][i])
-            thisRow['right'].append(RightData_list[j][i])
-        output_data['Frequencies'].append(thisRow)
+        
+        LeftData = getChannelScaled(AudiodataLeft)
+        RightData = getChannelScaled(AudiodataRight)
 
-    #Write the Spectrum file
-    with open(AudioSpectrumFile, 'w') as f:
-        json.dump(output_data, f)
+        #Create output json for the Spectrum .jet file
+        output_data = {'Refresh': 23, 'Frequencies': [], 'Peak': 100}
+        for i in range(LeftData.shape[1]):
+            thisRow = {'left': [], 'right': []}
+            for j in range(len(LeftData)):
+                # Convert the arrays to lists of native Python integers
+                LeftData_list = LeftData.tolist()
+                RightData_list = RightData.tolist()
+                thisRow['left'].append(LeftData_list[j][i])
+                thisRow['right'].append(RightData_list[j][i])
+            output_data['Frequencies'].append(thisRow)
+
+        #Write the Spectrum file
+        with open(AudioSpectrumFile, 'w') as f:
+            json.dump(output_data, f)
+    except Exception as e:
+        print(e)
 
     #Cleanup!
-    os.remove(AudioWavFile)
+    try:
+        os.remove(AudioWavFile)
+    except Exception as e:
+        print(e)
 
 # Changed CWD back
 cwd = os.getcwd()
