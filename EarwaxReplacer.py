@@ -73,6 +73,7 @@ if (not os.path.exists('Original Audio Files')):
     os.mkdir('Original Audio Files')
 for extension in extension_list:
     for audio in glob.glob(extension):
+        print("Converting", os.path.basename(audio), "to ogg")
         # use pydub to create the ogg file
         audio_filename = os.path.splitext(os.path.basename(audio))[0] + '.ogg'
         AudioSegment.from_file(audio).export(
@@ -95,11 +96,16 @@ for dirname, dirnames, filenames in os.walk(cwd):
 
 # Generate a spectrum file for each audio file
 for file in files:
-    print(file)
     AudioName = file  # Audio File
     AudioWavFile = cwd + "/" + AudioName + ".wav"
     AudioOggFile = cwd + "/" + AudioName + ".ogg"
     AudioSpectrumFile = cwd + "/../Spectrum/" + AudioName + ".jet"
+
+    if (os.path.exists(AudioSpectrumFile)):
+        print("Spectrum File Already Exists for", os.path.basename(file))
+        continue
+
+    print("Generating Spectrum File for", os.path.basename(file))
 
     # Convert ogg to wav for analysis
     try:
@@ -152,6 +158,7 @@ for file in files:
 cwd = os.getcwd()
 
 # Now create the new EarwaxAudio.jet
+print("Creating EarwaxAudio.jet")
 newEarwaxAudio = open(cwd+'/EarwaxAudio.jet', "w")
 
 # Write to it the initial lines
@@ -179,6 +186,8 @@ for file in files:
 # And write the final lines of the jet and close it up!
 newEarwaxAudio.write('\n\t]\n}')
 newEarwaxAudio.close()
+
+print("Complete!")
 
 # And collect garbage.
 gc.collect()
