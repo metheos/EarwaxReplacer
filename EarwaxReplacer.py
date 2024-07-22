@@ -94,6 +94,10 @@ for dirname, dirnames, filenames in os.walk(cwd):
             filename = filename[:-4]
             files.append(filename)
 
+# Create spectrum folder if not present
+if (not os.path.exists(cwd + "/../Spectrum/")):
+    os.mkdir(cwd + "/../Spectrum/")
+
 # Generate a spectrum file for each audio file
 for file in files:
     AudioName = file  # Audio File
