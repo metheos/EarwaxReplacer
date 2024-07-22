@@ -6,9 +6,42 @@ import glob
 import json
 import numpy as np
 from scipy.io import wavfile
-from scipy.signal import stft
+from scipy.signal import stft, lfilter, butter
 from pydub import AudioSegment
 from TTS.api import TTS
+
+
+def butter_params(low_freq, high_freq, fs, order=5):
+    nyq = 0.5 * fs
+    low = low_freq / nyq
+    high = high_freq / nyq
+    b, a = butter(order, [low, high], btype='band')
+    return b, a
+
+
+def butter_bandpass_filter(data, low_freq, high_freq, fs, order=5):
+    b, a = butter_params(low_freq, high_freq, fs, order=order)
+    y = lfilter(b, a, data)
+    return y
+
+
+# def convert_audio(input_audio_data):
+#     temp_audio = input_audio_data.astype(float)
+
+#     return np.array(temp_audio, dtype='int16')
+
+
+def set_echo(fs, data, delay):
+    # Applies an echo that is 0...<input audio duration in seconds> seconds from the beginning
+    output_audio = np.zeros(len(data))
+    output_delay = delay * fs
+
+    for count, e in enumerate(data):
+
+        output_audio[count] = (e * 0.5) + \
+            (data[count - int(output_delay)] * 0.5)
+
+    return output_audio
 
 
 def getChannelScaled(ChannelData):
@@ -224,8 +257,9 @@ if (os.path.exists("prompts.txt") and len(source_voice) > 0):
 
                 # generate prompt audio
                 outputTTSFile = "EarwaxPrompts/" + str(thisPromptID)+".wav"
+                outputOGGFile = "EarwaxPrompts/" + str(thisPromptID)+".ogg"
 
-                if not (os.path.exists(outputTTSFile)):
+                if not (os.path.exists(outputOGGFile)):
                     if tts is None:
                         # Init TTS Engine
                         tts = TTS(
@@ -237,6 +271,29 @@ if (os.path.exists("prompts.txt") and len(source_voice) > 0):
                                     file_path=outputTTSFile,
                                     speaker_wav=source_voice,
                                     language="en")
+
+                # Add distortions to make the voice sound like M.O.T.H.E.R.
+                fs, audio = wavfile.read(outputTTSFile)
+                low_freq = 200.0
+                high_freq = 5000.0
+                filtered_signal = butter_bandpass_filter(
+                    audio, low_freq, high_freq, fs, order=6)
+
+                # audio = convert_audio(audio)
+                filtered_signal = set_echo(fs, audio, 0.01)
+
+                outputMODFile = outputTTSFile.split('.wav')[0] + '_modded.wav'
+                wavfile.write(outputMODFile, fs, np.array(
+                    filtered_signal, dtype=np.int16))
+
+                # Convert the final wav to ogg for Jackbox
+                AudioSegment.from_file(outputMODFile).export(
+                    outputOGGFile, format='ogg', bitrate="64k")
+
+                # Delete the intermediate files
+                os.unlink(outputTTSFile)
+                os.unlink(outputMODFile)
+
                 # generate prompt object data
                 promptData = {"id": thisPromptID, "x": False,
                               "PromptAudio": thisPromptID, "name": stripped_line}
