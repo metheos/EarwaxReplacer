@@ -8,6 +8,7 @@ import numpy as np
 from scipy.io import wavfile
 from scipy.signal import stft
 from pydub import AudioSegment
+from TTS.api import TTS
 
 
 def getChannelScaled(ChannelData):
@@ -160,6 +161,93 @@ for file in files:
 
 # Changed CWD back
 cwd = os.getcwd()
+
+# TTS
+
+source_voice = []
+# See if there are files in source_voice
+if (os.path.exists("source_voice")):
+    # Get CWD and set it to look in source_voice
+    cwd = os.getcwd()
+    cwd += '/source_voice'
+
+    # Convert any ogg or mp3 to wav
+    extension_list = ('*.ogg', '*.mp3')
+    os.chdir(cwd)
+    # create directory to move original audio files
+    if (not os.path.exists('Original Audio Files')):
+        os.mkdir('Original Audio Files')
+    for extension in extension_list:
+        for audio in glob.glob(extension):
+            print("Converting", os.path.basename(audio), "to wav")
+            # use pydub to create the wav file
+            audio_filename = os.path.splitext(
+                os.path.basename(audio))[0] + '.wav'
+            AudioSegment.from_file(audio).export(
+                audio_filename, format='wav')
+            # move the original audio file to subdir
+            os.rename(os.path.basename(audio),
+                      'Original Audio Files/' + os.path.basename(audio))
+
+    # save list of .wav files to use for speech cloning
+    for audio in glob.glob("*.wav"):
+        source_voice.append("source_voice/"+audio)
+
+    # print(source_voice)
+
+    os.chdir('..')
+
+# Changed CWD back
+cwd = os.getcwd()
+
+# See if there is a prompts.txt file present and we have a source voice
+if (os.path.exists("prompts.txt") and len(source_voice) > 0):
+    # create initial object structure for prompt json
+    output_data = {'content': []}
+
+    # create output folder for prompt audio
+    if (not os.path.exists(cwd+"/EarwaxPrompts")):
+        os.mkdir(cwd+"/EarwaxPrompts")
+
+    # Init TTS Variable
+    tts = None
+
+    # process each non-empty line of the file into a prompt
+    promptID = 0
+    with open("prompts.txt", "r") as a_file:
+        for line in a_file:
+            stripped_line = line.strip()
+            if stripped_line != '':
+                print("Generating Prompt:", stripped_line)
+                # generate a prompt ID
+                thisPromptID = 10000+promptID
+
+                # generate prompt audio
+                outputTTSFile = "EarwaxPrompts/" + str(thisPromptID)+".wav"
+
+                if not (os.path.exists(outputTTSFile)):
+                    if tts is None:
+                        # Init TTS Engine
+                        tts = TTS(
+                            "tts_models/multilingual/multi-dataset/xtts_v2")
+
+                    ttsString = stripped_line.replace(
+                        "<ANY>", 'this player').replace("<i>", "").replace("</i>", "")
+                    tts.tts_to_file(text=ttsString,
+                                    file_path=outputTTSFile,
+                                    speaker_wav=source_voice,
+                                    language="en")
+                # generate prompt object data
+                promptData = {"id": thisPromptID, "x": False,
+                              "PromptAudio": thisPromptID, "name": stripped_line}
+                output_data['content'].append(promptData)
+
+                promptID += 1
+
+    # save prompts json to EarwaxPrompts.jet
+    with open("EarwaxPrompts.jet", 'w') as f:
+        json.dump(output_data, f)
+
 
 # Now create the new EarwaxAudio.jet
 print("Creating EarwaxAudio.jet")
