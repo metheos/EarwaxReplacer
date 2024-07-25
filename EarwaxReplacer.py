@@ -5,6 +5,7 @@ import gc
 import glob
 import json
 import numpy as np
+import torch
 from scipy.io import wavfile
 from scipy.signal import stft, lfilter, butter
 from pydub import AudioSegment
@@ -242,8 +243,12 @@ if (os.path.exists("prompts.txt") and len(source_voice) > 0):
     if (not os.path.exists(cwd+"/EarwaxPrompts")):
         os.mkdir(cwd+"/EarwaxPrompts")
 
-    # Init TTS Variable
+    # Init TTS Variables
     tts = None
+    # Get device
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # print(device)
+    # print(torch.cuda.is_available())
 
     # process each non-empty line of the file into a prompt
     promptID = 0
@@ -263,7 +268,7 @@ if (os.path.exists("prompts.txt") and len(source_voice) > 0):
                     if tts is None:
                         # Init TTS Engine
                         tts = TTS(
-                            "tts_models/multilingual/multi-dataset/xtts_v2")
+                            "tts_models/multilingual/multi-dataset/xtts_v2").to(device)
 
                     ttsString = stripped_line.replace(
                         "<ANY>", 'this player').replace("<i>", "").replace("</i>", "")
