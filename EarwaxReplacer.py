@@ -256,7 +256,7 @@ if (os.path.exists("prompts.txt") and len(source_voice) > 0):
         for line in a_file:
             stripped_line = line.strip()
             if stripped_line != '':
-                print("Generating Prompt:", stripped_line)
+                print("Generating Prompt:", stripped_line, "id:", promptID)
                 # generate a prompt ID
                 thisPromptID = 10000+promptID
 
@@ -277,27 +277,27 @@ if (os.path.exists("prompts.txt") and len(source_voice) > 0):
                                     speaker_wav=source_voice,
                                     language="en")
 
-                # Add distortions to make the voice sound like M.O.T.H.E.R.
-                fs, audio = wavfile.read(outputTTSFile)
-                low_freq = 200.0
-                high_freq = 5000.0
-                filtered_signal = butter_bandpass_filter(
-                    audio, low_freq, high_freq, fs, order=6)
+                    # Add distortions to make the voice sound like M.O.T.H.E.R.
+                    fs, audio = wavfile.read(outputTTSFile)
+                    low_freq = 200.0
+                    high_freq = 5000.0
+                    filtered_signal = butter_bandpass_filter(
+                        audio, low_freq, high_freq, fs, order=6)
 
-                # audio = convert_audio(audio)
-                filtered_signal = set_echo(fs, audio, 0.01)
+                    # audio = convert_audio(audio)
+                    filtered_signal = set_echo(fs, audio, 0.01)
 
-                outputMODFile = outputTTSFile.split('.wav')[0] + '_modded.wav'
-                wavfile.write(outputMODFile, fs, np.array(
-                    filtered_signal, dtype=np.int16))
+                    outputMODFile = outputTTSFile.split('.wav')[0] + '_modded.wav'
+                    wavfile.write(outputMODFile, fs, np.array(
+                        filtered_signal, dtype=np.int16))
 
-                # Convert the final wav to ogg for Jackbox
-                AudioSegment.from_file(outputMODFile).export(
-                    outputOGGFile, format='ogg', bitrate="64k")
+                    # Convert the final wav to ogg for Jackbox
+                    AudioSegment.from_file(outputMODFile).export(
+                        outputOGGFile, format='ogg', bitrate="64k")
 
-                # Delete the intermediate files
-                os.unlink(outputTTSFile)
-                os.unlink(outputMODFile)
+                    # Delete the intermediate files
+                    os.unlink(outputTTSFile)
+                    os.unlink(outputMODFile)
 
                 # generate prompt object data
                 promptData = {"id": thisPromptID, "x": False,
