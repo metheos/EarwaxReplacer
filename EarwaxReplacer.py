@@ -6,6 +6,8 @@ import glob
 import json
 import numpy as np
 import torch
+import soundfile as sf
+import pyrubberband as pyrb
 from scipy.io import wavfile
 from scipy.signal import stft, lfilter, butter
 from pydub import AudioSegment
@@ -25,11 +27,11 @@ def butter_bandpass_filter(data, low_freq, high_freq, fs, order=5):
     y = lfilter(b, a, data)
     return y
 
-
-# def convert_audio(input_audio_data):
-#     temp_audio = input_audio_data.astype(float)
-
-#     return np.array(temp_audio, dtype='int16')
+def speedUpAudio(filename, rate):
+    y, sr = sf.read(filename)
+    y_stretch = pyrb.time_stretch(y, sr, rate)
+    y_shift = pyrb.pitch_shift(y, sr, rate)
+    return y_stretch, sr
 
 
 def set_echo(fs, data, delay):
@@ -288,11 +290,16 @@ if (os.path.exists("prompts.txt") and len(source_voice) > 0):
                     filtered_signal = set_echo(fs, audio, 0.01)
 
                     outputMODFile = outputTTSFile.split('.wav')[0] + '_modded.wav'
-                    wavfile.write(outputMODFile, fs, np.array(
-                        filtered_signal, dtype=np.int16))
+                    wavfile.write(outputMODFile, fs, np.array(filtered_signal, dtype=np.int16))
+                    
+                    sped_up_signal, sr = speedUpAudio(outputMODFile, 1.125)
+                    sf.write(outputMODFile, sped_up_signal, sr, format='wav')
 
                     # Convert the final wav to ogg for Jackbox
-                    AudioSegment.from_file(outputMODFile).export(
+                    final_audio = AudioSegment.from_file(outputMODFile)
+                    #increase volume to match original game audio level
+                    final_audio = final_audio + 6
+                    final_audio.export(
                         outputOGGFile, format='ogg', bitrate="64k")
 
                     # Delete the intermediate files
