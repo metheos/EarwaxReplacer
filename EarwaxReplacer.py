@@ -8,11 +8,95 @@ import numpy as np
 import torch
 import soundfile as sf
 import pyrubberband as pyrb
+import winreg
 from scipy.io import wavfile
 from scipy.signal import stft, lfilter, butter
 from pydub import AudioSegment
 from TTS.api import TTS
+import sys
+import re
 
+cwd = os.getcwd()
+
+def get_steam_libraries():
+    libraries = []
+    try:
+        # Open the Steam registry key
+        steam_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Valve\Steam")
+        steam_path, _ = winreg.QueryValueEx(steam_key, "InstallPath")
+        libraries.append(os.path.join(steam_path, "steamapps"))
+        winreg.CloseKey(steam_key)
+
+        # Check for additional Steam libraries
+        library_folders_file = os.path.join(steam_path, "steamapps", "libraryfolders.vdf")
+        if os.path.exists(library_folders_file):
+            with open(library_folders_file, 'r') as f:
+                for line in f:
+                    if 'path' in line:
+                        path = line.split('"')[3].replace('\\\\', '\\')
+                        libraries.append(os.path.join(path, "steamapps"))
+    except Exception as e:
+        print(f"Error finding Steam libraries: {e}")
+    return libraries
+
+def find_jackbox_party_pack_2(libraries):
+    for library in libraries:
+        appmanifest_path = os.path.join(library, "appmanifest_397460.acf")
+        if os.path.exists(appmanifest_path):
+            with open(appmanifest_path, 'r') as f:
+                for line in f:
+                    if '"installdir"' in line:
+                        install_dir = line.split('"')[3]
+                        game_path = os.path.join(library, "common", install_dir)
+                        return game_path
+    return None
+
+# Locate the installation path for The Jackbox Party Pack 2
+steam_libraries = get_steam_libraries()
+jackbox_path = find_jackbox_party_pack_2(steam_libraries)
+if jackbox_path:
+    print(f"The Jackbox Party Pack 2 is installed at: {jackbox_path}")
+else:
+    print("The Jackbox Party Pack 2 installation path could not be found.")
+    prompt = input("Please enter the installation path for The Jackbox Party Pack 2: ")
+    jackbox_path = prompt.strip()
+
+earwax_content = os.path.join(jackbox_path, "games", "Earwax", "content")
+if earwax_content:
+    print(f"Earwax content path found at: {earwax_content}")
+else:
+    print("The Earwax Content path could not be found. Exiting.")
+    sys.exit()
+
+# Create backups of EarwaxAudio.jet and EarwaxPrompts.jet if they don't already exist
+backup_files = ["EarwaxAudio.jet", "EarwaxPrompts.jet"]
+for backup_file in backup_files:
+    original_file = os.path.join(earwax_content, backup_file)
+    backup_file_path = os.path.join(earwax_content, backup_file + ".bak")
+    if os.path.exists(original_file) and not os.path.exists(backup_file_path):
+        print(f"Creating backup for {backup_file}")
+        with open(original_file, 'rb') as f_src:
+            with open(backup_file_path, 'wb') as f_dst:
+                f_dst.write(f_src.read())
+
+# Check for missing prompt files in the local source_voice folder
+earwax_prompts_path = os.path.join(earwax_content, "EarwaxPrompts")
+local_source_voice_path = os.path.join(cwd, "source_voice")
+
+if not os.path.exists(local_source_voice_path):
+    os.mkdir(local_source_voice_path)
+
+for filename in os.listdir(earwax_prompts_path):
+    if filename.endswith(".ogg") and re.match(r"^\d+_[a-zA-Z0-9]+", filename):
+        local_file_path = os.path.join(local_source_voice_path, filename)
+        wav_filename = os.path.splitext(filename)[0] + ".wav"
+        local_wav_path = os.path.join(local_source_voice_path, wav_filename)
+        if not os.path.exists(local_file_path) and not os.path.exists(local_wav_path):
+            print(f"Copying {filename} to local source_voice folder")
+            source_file_path = os.path.join(earwax_prompts_path, filename)
+            with open(source_file_path, 'rb') as src_file:
+                with open(local_file_path, 'wb') as dst_file:
+                    dst_file.write(src_file.read())
 
 def butter_params(low_freq, high_freq, fs, order=5):
     nyq = 0.5 * fs
@@ -115,9 +199,11 @@ for extension in extension_list:
         audio_filename = os.path.splitext(os.path.basename(audio))[0] + '.ogg'
         AudioSegment.from_file(audio).export(
             audio_filename, format='ogg', bitrate="64k")
-        # move the original audio file to subdir
-        os.rename(os.path.basename(audio),
-                  'Original Audio Files/' + os.path.basename(audio))
+        # move the original audio file to subdir, overwrite if exists
+        destination_path = 'Original Audio Files/' + os.path.basename(audio)
+        if os.path.exists(destination_path):
+            os.remove(destination_path)
+        os.rename(os.path.basename(audio), destination_path)
 os.chdir('..')
 
 # Initialize files array
@@ -222,8 +308,10 @@ if (os.path.exists("source_voice")):
             AudioSegment.from_file(audio).export(
                 audio_filename, format='wav')
             # move the original audio file to subdir
-            os.rename(os.path.basename(audio),
-                      'Original Audio Files/' + os.path.basename(audio))
+            destination_path = 'Original Audio Files/' + os.path.basename(audio)
+            if os.path.exists(destination_path):
+                os.remove(destination_path)
+            os.rename(os.path.basename(audio), destination_path)
 
     # save list of .wav files to use for speech cloning
     for audio in glob.glob("*.wav"):
@@ -347,6 +435,96 @@ for file in files:
 # And write the final lines of the jet and close it up!
 newEarwaxAudio.write('\n\t]\n}')
 newEarwaxAudio.close()
+
+print("Generation Complete!")
+
+# Copy all .ogg files from the local New Sounds folder to earwax_content\EarwaxAudio\Audio
+new_sounds_path = os.path.join(cwd, "New Sounds")
+earwax_audio_path = os.path.join(earwax_content, "EarwaxAudio", "Audio")
+
+for filename in os.listdir(new_sounds_path):
+    if filename.endswith(".ogg"):
+        source_file_path = os.path.join(new_sounds_path, filename)
+        destination_file_path = os.path.join(earwax_audio_path, filename)
+        print(f"Copying {filename} to EarwaxAudio/Audio folder")
+        with open(source_file_path, 'rb') as src_file:
+            with open(destination_file_path, 'wb') as dst_file:
+                dst_file.write(src_file.read())
+
+# Copy all .jet files from the local Spectrum folder to earwax_content\EarwaxAudio\Spectrum
+spectrum_path = os.path.join(cwd, "Spectrum")
+earwax_spectrum_path = os.path.join(earwax_content, "EarwaxAudio", "Spectrum")
+
+for filename in os.listdir(spectrum_path):
+    if filename.endswith(".jet"):
+        source_file_path = os.path.join(spectrum_path, filename)
+        destination_file_path = os.path.join(earwax_spectrum_path, filename)
+        print(f"Copying {filename} to EarwaxAudio/Spectrum folder")
+        with open(source_file_path, 'rb') as src_file:
+            with open(destination_file_path, 'wb') as dst_file:
+                dst_file.write(src_file.read())
+
+
+# Copy all .ogg files from the local EarwaxPrompts folder to earwax_content\EarwaxPrompts
+local_earwax_prompts_path = os.path.join(cwd, "EarwaxPrompts")
+earwax_prompts_destination_path = os.path.join(earwax_content, "EarwaxPrompts")
+
+for filename in os.listdir(local_earwax_prompts_path):
+    if filename.endswith(".ogg"):
+        source_file_path = os.path.join(local_earwax_prompts_path, filename)
+        destination_file_path = os.path.join(earwax_prompts_destination_path, filename)
+        print(f"Copying {filename} to EarwaxPrompts folder")
+        with open(source_file_path, 'rb') as src_file:
+            with open(destination_file_path, 'wb') as dst_file:
+                dst_file.write(src_file.read())
+
+
+# Merge the content of the new EarwaxAudio.jet file into the existing EarwaxAudio.jet file in the earwax_content folder
+existing_earwax_audio_path = os.path.join(earwax_content, "EarwaxAudio.jet")
+print(f"Merging content from {os.path.join(cwd, 'EarwaxAudio.jet')} into {existing_earwax_audio_path}")
+try:
+    with open(existing_earwax_audio_path, 'r', encoding='utf-8') as existing_file:
+        existing_data = json.load(existing_file)
+except FileNotFoundError:
+    existing_data = {"episodeid": 1234, "content": []}
+
+with open(os.path.join(cwd, "EarwaxAudio.jet"), 'r', encoding='utf-8') as new_file:
+    new_data = json.load(new_file)
+
+# Merge the content
+existing_data["content"].extend(new_data["content"])
+
+# Remove duplicates based on 'id'
+unique_content = {item['id']: item for item in existing_data["content"]}.values()
+existing_data["content"] = list(unique_content)
+
+# Write the merged content back to the existing EarwaxAudio.jet file
+with open(existing_earwax_audio_path, 'w', encoding='utf-8') as merged_file:
+    json.dump(existing_data, merged_file, indent=4)
+
+
+# Merge the content of the new EarwaxPrompts.jet file into the existing EarwaxPrompts.jet file in the earwax_content folder
+existing_earwax_prompts_path = os.path.join(earwax_content, "EarwaxPrompts.jet")
+print(f"Merging content from {os.path.join(cwd, 'EarwaxPrompts.jet')} into {existing_earwax_prompts_path}")
+try:
+    with open(existing_earwax_prompts_path, 'r', encoding='utf-8') as existing_file:
+        existing_prompts_data = json.load(existing_file)
+except FileNotFoundError:
+    existing_prompts_data = {"content": []}
+
+with open(os.path.join(cwd, "EarwaxPrompts.jet"), 'r', encoding='utf-8') as new_file:
+    new_prompts_data = json.load(new_file)
+
+# Merge the content
+existing_prompts_data["content"].extend(new_prompts_data["content"])
+
+# Remove duplicates based on 'id'
+unique_prompts_content = {item['id']: item for item in existing_prompts_data["content"]}.values()
+existing_prompts_data["content"] = list(unique_prompts_content)
+
+# Write the merged content back to the existing EarwaxPrompts.jet file
+with open(existing_earwax_prompts_path, 'w', encoding='utf-8') as merged_file:
+    json.dump(existing_prompts_data, merged_file, indent=4)
 
 print("Complete!")
 
