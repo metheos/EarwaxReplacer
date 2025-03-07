@@ -181,9 +181,7 @@ def getChannelScaled(ChannelData):
 
     return integer_scaled_reduced_magnitude_spectra
 
-
 # Get CWD and set it to look in New Sounds
-cwd = os.getcwd()
 cwd += '/New Sounds'
 
 # Find any supported non-ogg files and convert them to ogg
