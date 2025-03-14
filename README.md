@@ -39,30 +39,21 @@ To install Python 3.10 from PowerShell, follow these steps:
    python --version
    ```
 
-### 2. Set Up a Virtual Environment
+### 2. Install Dependencies
 
 1. Open a terminal in Visual Studio Code.
 2. Navigate to your project directory:
    ```sh
    cd \my\path\to\EarwaxReplacer
    ```
-3. Create a virtual environment using Python 3.10:
-   ```sh
-   py -3.10 -m venv venv
-   ```
-4. Activate the virtual environment:
-   ```sh
-   .\venv\Scripts\activate
-   ```
-5. Install the dependencies from `requirements.txt`:
+3. Install the dependencies from `requirements.txt`:
    ```sh
    pip install -r requirements.txt
    ```
 
 ### 3. Running the Script
 
-1. Ensure you are in the virtual environment (activate it if necessary).
-2. Run the script:
+1. Run the script:
    ```sh
    python EarwaxReplacer.py
    ```
@@ -92,5 +83,4 @@ TTS
 If you encounter any issues, ensure that:
 
 - Python 3.10 is correctly installed and added to your system PATH.
-- The virtual environment is activated before running the script.
 - All dependencies are installed without errors.
