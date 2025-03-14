@@ -14,6 +14,7 @@ from pydub import AudioSegment
 from TTS.api import TTS
 import sys
 import re
+import subprocess
 
 # ----- File and Path Management Functions -----
 
@@ -104,7 +105,8 @@ def copy_prompt_files(earwax_content, local_source_voice_path):
                     with open(local_file_path, 'wb') as dst_file:
                         dst_file.write(src_file.read())
                 total_files_copied += 1
-    print(f"\nTotal Prompt files copied for source voice: \033[94m\"{total_files_copied}\"\033[0m")
+    print("Finished Copying Source Voice Files")
+    print(f"Total Prompt files copied for source voice: \033[94m\"{total_files_copied}\"\033[0m")
 
 # ----- Audio Processing Functions -----
 
@@ -194,6 +196,8 @@ def convert_audio_files(sounds_dir):
             if os.path.exists(destination_path):
                 os.remove(destination_path)
             os.rename(os.path.basename(audio), destination_path)
+    
+    print(f"Finished Converting Audio Files in \033[94m\"{sounds_dir}\"\033[0m")
 
 def generate_spectrum_files(sounds_dir, base_dir):
     print("Generating Spectrum files...")
@@ -274,8 +278,8 @@ def generate_spectrum_files(sounds_dir, base_dir):
             os.remove(AudioWavFile)
         except Exception as e:
             print(f"Error removing temp file: {e}")
-            
-    print(f"\nTotal spectrum files: \033[94m\"{len(files)}\"\033[0m")
+    print("Finished Generating Spectrum Files")
+    print(f"Total spectrum files: \033[94m\"{len(files)}\"\033[0m")
     return files
 
 # ----- TTS Functions -----
@@ -307,6 +311,7 @@ def prepare_source_voice(base_dir):
                 if os.path.exists(destination_path):
                     os.remove(destination_path)
                 os.rename(os.path.basename(audio), destination_path)
+                print(f"Finished Converting Audio Files in \033[94m\"source_voice\"\033[0m")
 
         # Save list of .wav files to use for speech cloning
         for audio in glob.glob("*.wav"):
@@ -446,7 +451,8 @@ def copy_files_to_game_folders(base_dir, earwax_content):
                 with open(destination_file_path, 'wb') as dst_file:
                     dst_file.write(src_file.read())
             total_files_copied += 1
-    print(f"\nTotal files copied to EarwaxAudio/Audio folder: \033[94m\"{total_files_copied}\"\033[0m")
+    print("Finished Copying New Audio Files")
+    print(f"Total files copied to EarwaxAudio/Audio folder: \033[94m\"{total_files_copied}\"\033[0m")
 
     # Copy all .jet files from the local Spectrum folder to earwax_content\EarwaxAudio\Spectrum
     spectrum_path = os.path.join(base_dir, "Spectrum")
@@ -463,7 +469,8 @@ def copy_files_to_game_folders(base_dir, earwax_content):
                 with open(destination_file_path, 'wb') as dst_file:
                     dst_file.write(src_file.read())
             total_files_copied += 1
-    print(f"\nTotal files copied to EarwaxAudio/Spectrum folder: \033[94m\"{total_files_copied}\"\033[0m")
+    print("Finished Copying New Spectrum Files")
+    print(f"Total files copied to EarwaxAudio/Spectrum folder: \033[94m\"{total_files_copied}\"\033[0m")
 
     # Copy all .ogg files from the local EarwaxPrompts folder to earwax_content\EarwaxPrompts
     local_earwax_prompts_path = os.path.join(base_dir, "EarwaxPrompts")
@@ -481,6 +488,7 @@ def copy_files_to_game_folders(base_dir, earwax_content):
                     with open(destination_file_path, 'wb') as dst_file:
                         dst_file.write(src_file.read())
                 total_files_copied += 1
+        print("Finished Copying New Prompt Files")
         print(f"\nTotal files copied to EarwaxPrompts folder: \033[94m\"{total_files_copied}\"\033[0m")
 
 def merge_jet_files(base_dir, earwax_content):
@@ -590,7 +598,7 @@ def main():
         launch_choice = input("Would you like to launch Earwax now? (yes/no): ").strip().lower()
         if launch_choice == 'yes':
             print("Launching Earwax...")
-            os.system('start steam://run/397460//-launchTo games%2FEarwax%2FEarwax.swf -jbg.config isBundle=false')
+            subprocess.run(['start', 'steam://run/397460//-launchTo', 'games%2FEarwax%2FEarwax.swf', '-jbg.config', 'isBundle=false'], shell=True)
         else:
             print("Complete!")
     
