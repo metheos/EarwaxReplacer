@@ -478,7 +478,8 @@ def copy_files_to_game_folders(base_dir, earwax_content):
 
 def merge_jet_files(base_dir, earwax_content):
     # Merge the content of the new EarwaxAudio.jet file into the existing EarwaxAudio.jet file
-    existing_earwax_audio_path = os.path.join(earwax_content, "EarwaxAudio.jet")
+    existing_earwax_audio_path = os.path.join(earwax_content, "EarwaxAudio.jet.bak")
+    destination_earwax_audio_path = os.path.join(earwax_content, "EarwaxAudio.jet")
     local_earwax_audio_path = os.path.join(base_dir, "EarwaxAudio.jet")
     
     print(f"Merging content from {local_earwax_audio_path} into {existing_earwax_audio_path}")
@@ -499,7 +500,7 @@ def merge_jet_files(base_dir, earwax_content):
     existing_data["content"] = list(unique_content)
 
     # Write the merged content back to the existing EarwaxAudio.jet file
-    with open(existing_earwax_audio_path, 'w', encoding='utf-8') as merged_file:
+    with open(destination_earwax_audio_path, 'w', encoding='utf-8') as merged_file:
         json.dump(existing_data, merged_file, indent=4)
 
     # Merge the content of the new EarwaxPrompts.jet file into the existing EarwaxPrompts.jet file
@@ -563,8 +564,19 @@ def main():
     # Step 8: Copy files to game folders
     copy_files_to_game_folders(base_dir, earwax_content)
     
-    # Step 9: Merge jet files
-    merge_jet_files(base_dir, earwax_content)
+    # Step 9: Prompt to choose whether to merge into original earwax sounds, or include only our new sounds
+    choice = input("Do you want to merge into original earwax sounds (yes) or include only our new sounds (no)? (yes/no): ").strip().lower()
+    if choice == 'yes':
+        merge_jet_files(base_dir, earwax_content)
+    else:
+        print("Skipping merge. Only new sounds will be included.")
+        # Copy our new EarwaxAudio.jet file to the game folder
+        destination_earwax_audio_path = os.path.join(earwax_content, "EarwaxAudio.jet")
+        local_earwax_audio_path = os.path.join(base_dir, "EarwaxAudio.jet")
+        with open(local_earwax_audio_path, 'rb') as src_file:
+            with open(destination_earwax_audio_path, 'wb') as dst_file:
+                dst_file.write(src_file.read())
+
     
     print("Complete!")
     
