@@ -53,16 +53,20 @@ def find_jackbox_party_pack_2(libraries):
 def locate_jackbox_path():
     steam_libraries = get_steam_libraries()
     jackbox_path = find_jackbox_party_pack_2(steam_libraries)
+    global located_automatically
+    located_automatically = True
+    
     if jackbox_path:
-        print(f"The Jackbox Party Pack 2 is installed at: {jackbox_path}")
+        print(f"The Jackbox Party Pack 2 is installed at: \033[94m\"{jackbox_path}\"\033[0m")
     else:
         print("The Jackbox Party Pack 2 installation path could not be found.")
         prompt = input("Please enter the installation path for The Jackbox Party Pack 2: ")
         jackbox_path = prompt.strip()
+        located_automatically = False
     
     earwax_content = os.path.join(jackbox_path, "games", "Earwax", "content")
     if os.path.exists(earwax_content):
-        print(f"Earwax content path found at: {earwax_content}")
+        print(f"Earwax content path found at: \033[94m\"{earwax_content}\"\033[0m")
     else:
         print("The Earwax Content path could not be found. Exiting.")
         sys.exit()
@@ -75,7 +79,7 @@ def create_backups(earwax_content):
         original_file = os.path.join(earwax_content, backup_file)
         backup_file_path = os.path.join(earwax_content, backup_file + ".bak")
         if os.path.exists(original_file) and not os.path.exists(backup_file_path):
-            print(f"Creating backup for {backup_file}")
+            print(f"Creating backup for \033[94m\"{backup_file}\"\033[0m")
             with open(original_file, 'rb') as f_src:
                 with open(backup_file_path, 'wb') as f_dst:
                     f_dst.write(f_src.read())
@@ -93,13 +97,14 @@ def copy_prompt_files(earwax_content, local_source_voice_path):
             wav_filename = os.path.splitext(filename)[0] + ".wav"
             local_wav_path = os.path.join(local_source_voice_path, wav_filename)
             if not os.path.exists(local_file_path) and not os.path.exists(local_wav_path):
-                print(f"Copying {filename} to local source_voice folder", end='\r')
+                print(" " * 150, end='\r')  # Clear the line
+                print(f"Copying \033[94m\"{filename}\"\033[0m to local source_voice folder", end='\r')
                 source_file_path = os.path.join(earwax_prompts_path, filename)
                 with open(source_file_path, 'rb') as src_file:
                     with open(local_file_path, 'wb') as dst_file:
                         dst_file.write(src_file.read())
                 total_files_copied += 1
-    print(f"\nTotal Prompt files copied for source voice: {total_files_copied}")
+    print(f"\nTotal Prompt files copied for source voice: \033[94m\"{total_files_copied}\"\033[0m")
 
 # ----- Audio Processing Functions -----
 
@@ -179,7 +184,7 @@ def convert_audio_files(sounds_dir):
     for extension in extension_list:
         for audio in glob.glob(extension):
             print(" " * 150, end='\r')  # Clear the line
-            print("Converting", os.path.basename(audio), "to ogg", end='\r')
+            print(f"Converting \033[94m\"{os.path.basename(audio)}\"\033[0m to ogg", end='\r')
             # Use pydub to create the ogg file
             audio_filename = os.path.splitext(os.path.basename(audio))[0] + '.ogg'
             AudioSegment.from_file(audio).export(
@@ -191,6 +196,7 @@ def convert_audio_files(sounds_dir):
             os.rename(os.path.basename(audio), destination_path)
 
 def generate_spectrum_files(sounds_dir, base_dir):
+    print("Generating Spectrum files...")
     # Initialize files array
     files = []
     
@@ -216,11 +222,11 @@ def generate_spectrum_files(sounds_dir, base_dir):
 
         if os.path.exists(AudioSpectrumFile):
             print(" " * 150, end='\r')  # Clear the line
-            print("Spectrum File Already Exists for", os.path.basename(file), end='\r')
+            print(f"Spectrum File Already Exists for \033[94m\"{os.path.basename(file)}\"\033[0m", end='\r')
             continue
 
         print(" " * 150, end='\r')  # Clear the line
-        print("Generating Spectrum File for", os.path.basename(file), end='\r')
+        print(f"Generating Spectrum File for \033[94m\"{os.path.basename(file)}\"\033[0m", end='\r')
 
         # Convert ogg to wav for analysis
         try:
@@ -269,7 +275,7 @@ def generate_spectrum_files(sounds_dir, base_dir):
         except Exception as e:
             print(f"Error removing temp file: {e}")
             
-    print(f"\nTotal spectrum files: {len(files)}")
+    print(f"\nTotal spectrum files: \033[94m\"{len(files)}\"\033[0m")
     return files
 
 # ----- TTS Functions -----
@@ -291,7 +297,7 @@ def prepare_source_voice(base_dir):
         for extension in extension_list:
             for audio in glob.glob(extension):
                 print(" " * 150, end='\r')  # Clear the line
-                print("Converting", os.path.basename(audio), "to wav", end='\r')
+                print(f"Converting \033[94m\"{os.path.basename(audio)}\"\033[0m to wav", end='\r')
                 # Use pydub to create the wav file
                 audio_filename = os.path.splitext(os.path.basename(audio))[0] + '.wav'
                 AudioSegment.from_file(audio).export(audio_filename, format='wav')
@@ -316,7 +322,7 @@ def generate_prompts(base_dir, source_voice):
     if not os.path.exists(prompts_file) or not source_voice:
         return None
         
-    print("Generating prompts")
+    print("Generating prompts...")
     # Create initial object structure for prompt json
     output_data = {'content': []}
 
@@ -337,7 +343,7 @@ def generate_prompts(base_dir, source_voice):
             stripped_line = line.strip()
             if stripped_line != '':
                 print(" " * 150, end='\r')  # Clear the line
-                print("Generating Prompt:", stripped_line, "id:", promptID, end='\r')
+                print(f"Generating Prompt: \033[94m\"{stripped_line}\"\033[0m id: \033[94m\"{promptID}\"\033[0m", end='\r')
                 # Generate a prompt ID
                 thisPromptID = 10000 + promptID
 
@@ -388,7 +394,8 @@ def generate_prompts(base_dir, source_voice):
                 promptID += 1
 
     # Save prompts json to EarwaxPrompts.jet
-    print("Saving prompts to EarwaxPrompts.jet")
+    print(" " * 150, end='\r')  # Clear the line
+    print("Saving prompts to \033[94m\"EarwaxPrompts.jet\"\033[0m")
     prompts_jet_file = os.path.join(base_dir, "EarwaxPrompts.jet")
     with open(prompts_jet_file, 'w') as f:
         json.dump(output_data, f)
@@ -398,7 +405,7 @@ def generate_prompts(base_dir, source_voice):
 # ----- JSON File Generation Functions -----
 
 def create_earwax_audio_jet(base_dir, files):
-    print("Creating EarwaxAudio.jet")
+    print("Creating \033[94m\"EarwaxAudio.jet\"\033[0m")
     jet_file_path = os.path.join(base_dir, "EarwaxAudio.jet")
     
     with open(jet_file_path, "w") as newEarwaxAudio:
@@ -419,7 +426,7 @@ def create_earwax_audio_jet(base_dir, files):
         # Write final lines
         newEarwaxAudio.write('\n\t]\n}')
     
-    print("EarwaxAudio.jet file created")
+    print("\033[94m\"EarwaxAudio.jet\"\033[0m file created")
 
 # ----- File Copy and Merge Functions -----
 
@@ -434,12 +441,12 @@ def copy_files_to_game_folders(base_dir, earwax_content):
             source_file_path = os.path.join(new_sounds_path, filename)
             destination_file_path = os.path.join(earwax_audio_path, filename)
             print(" " * 150, end='\r')  # Clear the line
-            print(f"Copying {filename} to EarwaxAudio/Audio folder", end='\r')
+            print(f"Copying \033[94m\"{filename}\"\033[0m to EarwaxAudio/Audio folder", end='\r')
             with open(source_file_path, 'rb') as src_file:
                 with open(destination_file_path, 'wb') as dst_file:
                     dst_file.write(src_file.read())
             total_files_copied += 1
-    print(f"\nTotal files copied to EarwaxAudio/Audio folder: {total_files_copied}")
+    print(f"\nTotal files copied to EarwaxAudio/Audio folder: \033[94m\"{total_files_copied}\"\033[0m")
 
     # Copy all .jet files from the local Spectrum folder to earwax_content\EarwaxAudio\Spectrum
     spectrum_path = os.path.join(base_dir, "Spectrum")
@@ -451,12 +458,12 @@ def copy_files_to_game_folders(base_dir, earwax_content):
             source_file_path = os.path.join(spectrum_path, filename)
             destination_file_path = os.path.join(earwax_spectrum_path, filename)
             print(" " * 150, end='\r')  # Clear the line
-            print(f"Copying {filename} to EarwaxAudio/Spectrum folder", end='\r')
+            print(f"Copying \033[94m\"{filename}\"\033[0m to EarwaxAudio/Spectrum folder", end='\r')
             with open(source_file_path, 'rb') as src_file:
                 with open(destination_file_path, 'wb') as dst_file:
                     dst_file.write(src_file.read())
             total_files_copied += 1
-    print(f"\nTotal files copied to EarwaxAudio/Spectrum folder: {total_files_copied}")
+    print(f"\nTotal files copied to EarwaxAudio/Spectrum folder: \033[94m\"{total_files_copied}\"\033[0m")
 
     # Copy all .ogg files from the local EarwaxPrompts folder to earwax_content\EarwaxPrompts
     local_earwax_prompts_path = os.path.join(base_dir, "EarwaxPrompts")
@@ -469,12 +476,12 @@ def copy_files_to_game_folders(base_dir, earwax_content):
                 source_file_path = os.path.join(local_earwax_prompts_path, filename)
                 destination_file_path = os.path.join(earwax_prompts_destination_path, filename)
                 print(" " * 150, end='\r')  # Clear the line
-                print(f"Copying {filename} to EarwaxPrompts folder", end='\r')
+                print(f"Copying \033[94m\"{filename}\"\033[0m to EarwaxPrompts folder", end='\r')
                 with open(source_file_path, 'rb') as src_file:
                     with open(destination_file_path, 'wb') as dst_file:
                         dst_file.write(src_file.read())
                 total_files_copied += 1
-        print(f"\nTotal files copied to EarwaxPrompts folder: {total_files_copied}")
+        print(f"\nTotal files copied to EarwaxPrompts folder: \033[94m\"{total_files_copied}\"\033[0m")
 
 def merge_jet_files(base_dir, earwax_content):
     # Merge the content of the new EarwaxAudio.jet file into the existing EarwaxAudio.jet file
@@ -482,7 +489,7 @@ def merge_jet_files(base_dir, earwax_content):
     destination_earwax_audio_path = os.path.join(earwax_content, "EarwaxAudio.jet")
     local_earwax_audio_path = os.path.join(base_dir, "EarwaxAudio.jet")
     
-    print(f"Merging content from {local_earwax_audio_path} into {existing_earwax_audio_path}")
+    print(f"Merging content from \033[94m\"EarwaxAudio.jet\"\033[0m into \033[94m\"{destination_earwax_audio_path}\"\033[0m")
     try:
         with open(existing_earwax_audio_path, 'r', encoding='utf-8') as existing_file:
             existing_data = json.load(existing_file)
@@ -504,11 +511,12 @@ def merge_jet_files(base_dir, earwax_content):
         json.dump(existing_data, merged_file, indent=4)
 
     # Merge the content of the new EarwaxPrompts.jet file into the existing EarwaxPrompts.jet file
-    existing_earwax_prompts_path = os.path.join(earwax_content, "EarwaxPrompts.jet")
+    existing_earwax_prompts_path = os.path.join(earwax_content, "EarwaxPrompts.jet.bak")
+    destination_earwax_prompts_path = os.path.join(earwax_content, "EarwaxPrompts.jet")
     local_earwax_prompts_path = os.path.join(base_dir, "EarwaxPrompts.jet")
     
     if os.path.exists(local_earwax_prompts_path):
-        print(f"Merging content from {local_earwax_prompts_path} into {existing_earwax_prompts_path}")
+        print(f"Merging content from \033[94m\"EarwaxPrompts.jet\"\033[0m into \033[94m\"{destination_earwax_prompts_path}\"\033[0m")
         try:
             with open(existing_earwax_prompts_path, 'r', encoding='utf-8') as existing_file:
                 existing_prompts_data = json.load(existing_file)
@@ -526,7 +534,7 @@ def merge_jet_files(base_dir, earwax_content):
         existing_prompts_data["content"] = list(unique_prompts_content)
 
         # Write the merged content back to the existing EarwaxPrompts.jet file
-        with open(existing_earwax_prompts_path, 'w', encoding='utf-8') as merged_file:
+        with open(destination_earwax_prompts_path, 'w', encoding='utf-8') as merged_file:
             json.dump(existing_prompts_data, merged_file, indent=4)
 
 # ----- Main Function -----
@@ -577,8 +585,14 @@ def main():
             with open(destination_earwax_audio_path, 'wb') as dst_file:
                 dst_file.write(src_file.read())
 
-    
-    print("Complete!")
+    # Step 10: Offer to launch Earwax directly if it was located automatically
+    if located_automatically:
+        launch_choice = input("Would you like to launch Earwax now? (yes/no): ").strip().lower()
+        if launch_choice == 'yes':
+            print("Launching Earwax...")
+            os.system('start steam://run/397460//-launchTo games%2FEarwax%2FEarwax.swf -jbg.config isBundle=false')
+        else:
+            print("Complete!")
     
     # And collect garbage
     gc.collect()
